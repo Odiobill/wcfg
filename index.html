@@ -30,32 +30,35 @@
 
       </header>
       <section>
-        <h3>Welcome to GitHub Pages.</h3>
+	<h3>Welcome to the Wcfg project page.</h3>
+<p><em>Wcfg</em> is mainly a shell script that can configure (or remove) complete LAMP-like virtual servers.
+It can manage many different things, like <strong>nginx</strong> or <strong>apache2</strong>
+<em>NameVirtualServers</em>, <strong>mysql</strong> databases and privileges, (ftp) <strong>users</strong>,
+<strong>awstats</strong> static reports. <strong>logrotate</strong> will also be configured to take care of
+your virtual servers, but everything is keep consistent with the regulations and automatisms provided by the
+standard Debian packages.</p>
+<p>An <em>FTP server is not required</em>, however a new user will be created for every virtual server, with
+the website root path as home directory.</p>
+<p>Removing a virtual server will clean everything, but a complete backup is dumped in the current directory
+before leaving.</p>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
-
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+	<h3>Website backups</h3>
+<p><em>Wcfg</em> also provides advanced website backup feature using <strong>rsync</strong> real-link
+snapshots, so you won't waste disk space except for the only filesthat were modified since last backup, plus
+an updated database dump (if a database is used by that specific website, of course).</p>
+<p>If a forth directory called <em>backup</em> exists under the website main tree, the
+<strong>wcfg-backup</strong> script (it usually runs from a daily cron job) will take snapshots as explained
+above. You can choose to exclude files or directories from your daily snapshots listing them in a file named
+<em>exclude</em> under the backup directory. You must specify relative paths starting from the website root
+directory, like:</p>
+<pre><code>htdocs/uploads/tmp</code></pre>
+<p>If you use views for any of your database, please provide the <em>show view</em> grant to the
+<em>debian-sys-maint</em> user with the following SQL commands after loggin into MySQL as admin user:</p>
+<pre><code>
+	use mysql;
+	update user set Show_view_priv = "Y" where User = 'debian-sys-maint';
+	flush privileges;
 </code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
       </section>
       <footer>
         <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
