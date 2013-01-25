@@ -1,0 +1,21 @@
+<VirtualHost *:80>
+	ServerName server_name;
+	ServerAlias server_alias;
+	CustomLog access.log; combined
+	ErrorLog error.log;
+	DocumentRoot htdocs;
+	<Directory htdocs;>
+		Options -Indexes FollowSymLinks MultiViews
+		AllowOverride All
+		Order allow,deny
+		allow from all
+	</Directory>
+	<Directory /usr/share/awstats/icon>
+		Options None
+		AllowOverride None
+		Order allow,deny
+		Allow from all
+	</Directory>
+	Alias /awstats-icon/ /usr/share/awstats/icon/
+	Alias /stats/ stats;
+</VirtualHost>

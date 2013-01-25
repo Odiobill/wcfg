@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# wcfg-backup 1.0 - 2013/01/25
+# Author: Davide Lucchesi <davide@lucchesi.nl>
+#
+# Real links based snapshots and MySQL dumps for websites configured with wcfg.
+# This script is intended to be run as super user.
+#
+# wcfg is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2, or (at your option) any later version.
+#
+# wcfg is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+
+LOCK="/var/run/wcfg.lock"
+
+if [ `id -u` != "0" ] ; then
+	echo "You need super user privileges to run this script. Exiting."
+	exit 1
+fi
+
+if [ -f "$LOCK" ]; then
+	echo "Lock file "$LOCK" already exists. Exiting."
+	exit 1
+else
+	touch "$LOCK"
+fi
+
+MYSQLCSTR=""
+SNAPSHOTS=7
+if [ -f /etc/default/wcfg ]; then
+	. /etc/default/wcfg
+fi
+if [ -z "$MYSQLCSTR" ]; then
+	if [ -f /etc/mysql/debian.cnf ]; then
+		ADMIN_USER=`grep ^user /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
+		ADMIN_PASS=`grep ^pass /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
+		MYSQLCSTR="-u $ADMIN_USER -p$ADMIN_PASS"
+		echo "SHOW DATABASES;" | mysql $MYSQLCSTR > "$LOCK"
+	fi
+fi
+
+# taking snapshots and dumping DBs
+ls /etc/wcfg/sites | while read i; do
+	DBNAME=""
+	. /etc/wcfg/sites/$i
+	WSDEFAULT=`basename $i`;
+	defvalue=`echo $WSDEFAULT | sed "s/\..*//"`
+	if [ -z "$DBNAME" ] ; then
+		DBNAME=$defvalue
+	fi
+	DSTPATH="$WSROOTDIR/$WSDEFAULT/backup"
+	if [ -d "$DSTPATH" ] ; then
+		SRCPATH="$WSROOTDIR/$WSDEFAULT/htdocs"
+		mkdir -p $DSTPATH/current
+		for day in $(seq 1 $SNAPSHOTS); do
+			mkdir -p $DSTPATH/day-$day
+		done 
+		mkdir -p $DSTPATH/emptydir
+		rsync --delete -a $DSTPATH/emptydir/ $DSTPATH/day-$SNAPSHOTS
+		rm -rf $DSTPATH/day-$SNAPSHOTS
+		rmdir $DSTPATH/emptydir
+
+		for day in $(seq $SNAPSHOTS -1 2); do
+			precday=$(($day - 1))
+			mv $DSTPATH/day-$precday $DSTPATH/day-$day
+		done
+		mv $DSTPATH/current $DSTPATH/day-1
+		mkdir -p $DSTPATH/current
+		if [ -f "$DSTPATH/exclude" ]; then
+			EXCLUDE="--exclude-from=$DSTPATH/exclude"
+		else
+			EXCLUDE=""
+		fi
+
+		rsync -a $EXCLUDE --delete --link-dest=../day-1 $SRCPATH $DSTPATH/current/
+
+		# dumping database
+		dbname=`grep "$DBNAME" "$LOCK"`
+		if [ ! -z "$dbname" ] ; then
+			BACKUP="$WSROOTDIR/$WSDEFAULT/backup/current/$DBNAME.sql"
+			mysqldump --add-drop-database --opt --routines $MYSQLCSTR "$DBNAME" > "$BACKUP"
+		fi
+	fi
+done
+
+# done, cleaning up
+rm "$LOCK"
+exit 0
+

@@ -1,0 +1,18 @@
+server {
+  server_name	server_name;
+  root		htdocs;
+  access_log	access.log;
+  error_log	error.log;
+
+  index		index.php index.html;
+
+  location  /stats/ {
+    alias  stats;
+  }
+  location  /awstats-icon/ {
+    alias  /usr/share/awstats/icon/;
+  }
+
+  include /etc/wcfg/nginx/php.conf;
+}
+

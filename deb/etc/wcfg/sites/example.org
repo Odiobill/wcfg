@@ -1,0 +1,11 @@
+# This is an example website template for wcfg. You can copy it to define your
+# http virtual servers. Values left empty will be guessed from the domain
+# name. For an explanation about how it works, please read the wcfg man page.
+#
+WSNAMES="example.org www.example.org"
+#SYSUSER="example"
+#SYSPASS="example"
+#DBNAME="example"
+#DBUSER="example"
+#DBPASS="example"
+#SNAPSHOTS=7

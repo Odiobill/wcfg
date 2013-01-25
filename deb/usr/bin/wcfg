@@ -1,0 +1,285 @@
+#!/bin/bash
+#
+# wcfg 1.0 - 2013/01/25
+# Author: Davide Lucchesi <davide@lucchesi.nl>
+#
+# Simple management of LAMP-like virtual servers for Debian and derivates.
+# This script is intended to be run as super user.
+#
+# wcfg is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2, or (at your option) any later version.
+# 
+# wcfg is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+
+
+# Default parameters that may be replaced in any configuration file.
+#
+WSNAMES="example.org www.example.org"
+SYSUSER=""
+SYSPASS=""
+DBNAME=""
+DBUSER=""
+DBPASS=""
+
+
+usage() {
+	echo "Usage: $0 </etc/wcfg/sites/your_site_name> [--delete]"
+	exit 1
+}
+
+delete=0
+if [ $# -eq 2 ] ; then
+	if [ "$2" = "--delete" ] ; then
+		delete=1
+	else
+		usage
+	fi
+fi
+
+if [ $# -eq 1 -o $delete -eq 1 ] ; then
+	MYSQLCSTR=""
+	if [ -f /etc/default/wcfg ] ; then
+		. /etc/default/wcfg
+	else
+		echo "WARNING: /etc/default/wcfg not found."
+		echo "Assuming that the default parameters are specified in the configuration file."
+	fi
+	if [ -z "$NODB" ] ; then
+		if [ -z "$MYSQLCSTR" ] ; then
+			if [ -f /etc/mysql/debian.cnf ] ; then
+				ADMIN_USER=`grep ^user /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
+				ADMIN_PASS=`grep ^pass /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
+				MYSQLCSTR="-u $ADMIN_USER -p$ADMIN_PASS"
+			else
+				NODB="1"
+				echo "Warning: can't connect to MySQL."
+				echo "MYSQLCSTR: MySQL connection string unknown. Skipping data-base configuration."
+				echo " ";
+			fi
+		fi
+	fi
+
+	if [ -f $1 ] ; then
+		echo "Loading configuration file $1"
+		. $1
+		WSDEFAULT=`basename $1`;
+		if [ -z "$SYSUSER" ] ; then
+			SYSUSER=`echo $WSDEFAULT | sed "s/\..*//"`
+			echo "Guessing username: $SYSUSER"
+		fi
+		if [ -z "$SYSPASS" ] ; then
+			SYSPASS=$SYSUSER
+			echo "Guessing password: $SYSPASS"
+		fi
+		if [ -z "$NODB" ] ; then
+			if [ -z "$DBNAME" ] ; then
+				DBNAME=$SYSUSER
+				echo "Guessing database name: $DBNAME"
+			fi
+			if [ -z "$DBUSER" ] ; then
+				DBUSER=$SYSUSER
+				echo "Guessing database username: $DBNAME"
+			fi
+			if [ -z "$DBPASS" ] ; then
+				DBPASS="$SYSPASS"
+				echo "Guessing database password: $DBPASS"
+			fi
+		fi
+		if [ $delete -eq 1 ] ; then
+			if [ -f /etc/nginx/nginx.conf ] ; then
+				rm -f "$NGINXDIR/../sites-enabled/$WSDEFAULT"
+				rm -f "$NGINXDIR/$WSDEFAULT"
+				/etc/init.d/nginx reload
+			fi
+			if [ -f /etc/apache2/apache2.conf ] ; then
+				rm -f "$APACHEDIR/../sites-enabled/$WSDEFAULT"
+				rm -f "$APACHEDIR/$WSDEFAULT"
+				/etc/init.d/apache2 reload
+			fi
+			if [ -z "$NODB" ] ; then
+				mysqldump --opt $MYSQLCSTR $DBNAME \
+					> "$WSROOTDIR/$WSDEFAULT/$DBNAME.sql"
+				echo "
+					DROP USER $DBUSER@'localhost';
+					DROP USER $DBUSER@'%';
+					DROP DATABASE $DBNAME;
+				" | mysql $MYSQLCSTR
+			fi
+			rm -rf "$WSROOTDIR/$WSDEFAULT/backup"
+			tar zcf "$SYSUSER.tar.gz" \
+				"$WSROOTDIR/$WSDEFAULT" \
+				>/dev/null 2>&1
+			rm -f "$AWSTATDIR/awstats.$WSDEFAULT.conf"
+			rm -f "$STATCACHE/$WSDEFAULT"
+			userdel -f -r $SYSUSER >/dev/null 2>&1
+			echo "Website removed. Backup dumped to file: " \
+				"$SYSUSER.tar.gz"
+			exit 1
+		fi
+	else
+		usage
+	fi
+else
+	usage
+fi
+
+# initial checkup: we can proceed only without any error.
+errors=0
+if [ `id -u` != "0" ] ; then
+	echo "Error: You need super user privileges to run this script."
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ ! -d "$WSROOTDIR" ] ; then
+	echo "Error: $WSROOTDIR not found."
+	echo "WSROOTDIR: cannot create directories for the new website."
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ ! -d "$WSSKELDIR" ] ; then
+	echo "Error: $WSSKELDIR not found."
+	echo "WSSKELDIR: default website root directory template not found."
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -f /etc/nginx/nginx.conf -a ! -f "$NGINXDOM" ] ; then
+	echo "Error: nginx detected but $NGINXDOM not found."
+	echo "NGINXDOM: nginx virtual site template not found."
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -f /etc/apache2/apache2.conf -a ! -f "$APACHEDOM" ] ; then
+	echo "Error: apache2 detected but $APACHEDOM not found."
+	echo "APACHEDOM: apache2 virtual site template not found."
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -f /etc/nginx/nginx.conf -a -f "$NGINXDIR/$WSDEFAULT" ] ; then
+	echo "Error: $WSDEFAULT may be already configured."
+	echo "WSDEFAULT: nginx site configuration: $NGINXDIR/$WSDEFAULT"
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -f /etc/apache2/apache2.conf -a -f "$APACHEDIR/$WSDEFAULT" ] ; then
+	echo "Error: $WSDEFAULT may be already configured."
+	echo "WSDEFAULT: apache2 site configuration: $APACHEDIR/$WSDEFAULT"
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -f "$AWSTATDIR/awstats.$WSDEFAULT.conf" ] ; then
+	echo "Error: $WSDEFAULT may be already configured."
+	echo "AWSTATDIR: awstats site configuration: $AWSTATDIR/awstats.$WSDEFAULT.conf"
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+grep "^$SYSUSER:" /etc/passwd >/dev/null 2>&1
+if [ $? -eq 0 ] ; then
+	echo "Error: $WSDEFAULT may be already configured."
+	echo "SYSUSER: username already existing: $SYSUSER"
+	echo " ";
+	errors=$(($errors + 1))
+fi
+
+if [ -z "$NOSTATS" ] ; then
+	if [ ! -f "$AWSTATDOM" ] ; then
+		NOSTATS="1"
+		echo "Warning: $AWSTATDOM not found."
+		echo "AWSTATDOM: awstats configuration not found. Skipping statistics configuration."
+		echo " ";
+	fi
+fi
+
+if [ $errors -gt 0 ] ; then
+	echo "Found $errors error(s). Giving up."
+	exit 1
+else
+	echo " "
+	echo "A new website will be created with the following parameters:"
+	echo " "
+	echo "WSNAMES: $WSNAMES"
+	echo "SYSUSER: $SYSUSER"
+	echo "SYSPASS: $SYSPASS"
+	if [ -z "$NODB" ] ; then
+		echo "DBNAME: $DBNAME"
+		echo "DBUSER: $DBUSER"
+		echo "DBPASS: $DBPASS"
+	fi
+	echo " "
+	echo -n "Confirm? (y/N) "
+	read conf
+	if [ "$conf" != "y" ] ; then
+		echo "Giving up as requested."
+		exit 1
+	fi
+fi
+
+# user
+#
+useradd -c "$WSDEFAULT" -d "$WSROOTDIR/$WSDEFAULT" \
+	-u $WWWUID -g $WWWGID -k "$WSSKELDIR" -m -o \
+	-p `perl -e 'print crypt($ARGV[0], "wcfg")' $SYSPASS` "$SYSUSER"
+
+# nginx
+#
+if [ -f /etc/nginx/nginx.conf ] ; then
+	cp "$NGINXDOM" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:server_name;:$WSNAMES;:g" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:htdocs;:$WSROOTDIR/$WSDEFAULT/htdocs;:g" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:access.log;:$WSROOTDIR/$WSDEFAULT/logs/access.log;:g" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:error.log;:$WSROOTDIR/$WSDEFAULT/logs/error.log;:g" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:stats;:$WSROOTDIR/$WSDEFAULT/awstats/reports/;:g" "$NGINXDIR/$WSDEFAULT"
+	ln -s "$NGINXDIR/$WSDEFAULT" "$NGINXDIR/../sites-enabled/"
+fi
+
+# apache2
+#
+if [ -f /etc/apache2/apache2.conf ] ; then
+	cp "$APACHEDOM" "$APACHEDIR/$WSDEFAULT"
+	server_name=`echo "$WSNAMES" | awk ' { print $1 } '`
+	sed -i "s:server_name;:$server_name:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:server_alias;:$WSNAMES:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:htdocs;:$WSROOTDIR/$WSDEFAULT/htdocs:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:access.log;:$WSROOTDIR/$WSDEFAULT/logs/access.log:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:error.log;:$WSROOTDIR/$WSDEFAULT/logs/error.log:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:stats;:$WSROOTDIR/$WSDEFAULT/awstats/reports/:g" "$APACHEDIR/$WSDEFAULT"
+	ln -s "$APACHEDIR/$WSDEFAULT" "$APACHEDIR/../sites-enabled/"
+fi
+
+# awstats
+#
+if [ -z "$NOSTATS" ] ; then
+ cat "$AWSTATDOM" \
+ | sed "s:^LogFile.*$:LogFile=\"$WSROOTDIR/$WSDEFAULT/logs/access.log\":" \
+ | sed "s:^SiteDomain.*:SiteDomain=\"$WSDEFAULT\":" \
+ | sed "s:^HostAliases.*:HostAliases=\"$WSNAMES\":" \
+ | sed "s:^DirData.*:DirData=\"$WSROOTDIR/$WSDEFAULT/awstats\":" \
+ > "$AWSTATDIR/awstats.$WSDEFAULT.conf"
+	ln -s "$WSROOTDIR/$WSDEFAULT/awstats/reports" "$STATCACHE/$WSDEFAULT"
+fi
+
+# mysql
+#
+if [ -z "$NODB" ] ; then
+	echo "
+		CREATE DATABASE $DBNAME;
+		GRANT ALL ON $DBNAME.* TO $DBUSER@'localhost' IDENTIFIED BY '$DBPASS';
+		GRANT ALL ON $DBNAME.* TO $DBUSER@'%' IDENTIFIED BY '$DBPASS';
+		FLUSH PRIVILEGES;
+	" | mysql $MYSQLCSTR
+fi
+
+echo "$WSDEFAULT configured. Please reload your webserver to activate it."
+exit 0
+

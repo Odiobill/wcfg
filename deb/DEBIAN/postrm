@@ -1,0 +1,8 @@
+#!/bin/sh
+
+set -e
+
+if [ -f /etc/php5/fpm/php-fpm.conf -a -x /etc/init.d/php5-fpm ] ; then
+	/etc/init.d/php5-fpm reload
+fi
+exit 0

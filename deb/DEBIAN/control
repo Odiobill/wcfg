@@ -1,0 +1,15 @@
+Package: wcfg
+Priority: extra
+Section: net
+Maintainer: Davide Lucchesi <davide@lucchesi.nl>
+Architecture: all
+Version: 1.0-7
+Depends: nginx-light|nginx|apache2, php5-fpm|libapache2-mod-php5, logrotate, mysql-client, rsync, sed
+Suggests: awstats, mysql-server, vsftpd
+Provides: wcfg
+Description: Simple management of LAMP-like virtual servers for Debian and derivates.
+ This script is intended to be run as super user, since it will configure (or
+ remove) complete LAMP-like virtual servers. It can manage many different things
+ like multiple website configurations for nginx or apache2, mysql databases and
+ privileges, (ftp) users, awstats, logrotate. It provides also advanced website
+ backup features.

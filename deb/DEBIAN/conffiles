@@ -1,0 +1,6 @@
+/etc/php5/fpm/pool.d/wcfg.conf
+/etc/wcfg/nginx/site
+/etc/wcfg/nginx/php.conf
+/etc/wcfg/apache2/site
+/etc/default/wcfg
+/etc/logrotate.d/wcfg

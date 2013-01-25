@@ -1,0 +1,96 @@
+# WSSKELDIR is a template directory that at least should contain three subdirs:
+# awstats, htdocs and logs. It's content will be copied in the home directory
+# of the new user.
+# If you need to clone a different source directory, just replace this value.
+#
+WSSKELDIR="/etc/wcfg/wsroot"
+
+# An nginx virtual site configuration template is distribuited with wcfg: it
+# will be filled with the website parameters and stored in the directory
+# specified by NGINXDIR. If you want to use a different template, just replace
+# the NGINXDOM value.
+#
+NGINXDOM="/etc/wcfg/nginx/site"
+
+# An apache2 virtual site configuration template is distribuited with wcfg: it
+# will be filled with the website parameters and stored in the directory
+# specified by APACHEDIR. If you want to use a different template, just replace
+# the APACHEDOM value.
+#
+APACHEDOM="/etc/wcfg/apache2/site"
+
+# WSROOTDIR should be the same for every of your websites, and the Debian
+# default location /var/www/ is used by default. If you need a different root
+# directory, just replace WSROOTDIR value.
+#
+WSROOTDIR="/var/www"
+
+# How many snapshots do you want to preserve online? Every (daily) snapshot
+# contains a copy of the htdocs directory and (if available) a database dump.
+# Please consider that files inside htdocs are not copied, but referred using
+# real links from the last available snapshot: you will not waste disk space
+# for files that were not modify.
+# You may also customize the snapshots number using per-site values within every
+# specific site configuration file.
+#
+SNAPSHOTS=7
+
+
+# The following parameters should work fine on every Debian/Ubuntu installation.
+# You should not touch them unless you know exactly what you are doing.
+
+# If you want to use an external/custom MySQL server that you can't connect to
+# using the preconfigured debian-sys-maint administrative user, then you need to
+# provide the suitable connection string in the following format:
+#
+# MYSQLCSTR="-u root -pPasswordForTheDataBaseServer -h sql.example.org"
+
+# By default, every created (ftp) user shares the same user id, that is set to
+# the same of the www-data user. If you need a different user id, just replace
+# WWWUID value, that is set to 33 as default in Debian systems.
+#
+WWWUID=33
+
+# By default, every created (ftp) user shares the same group id, that is set to
+# the same of the www-data user. If you need a different group id, just replace
+# WWWGID value, that is set to 33 as default in Debian systems.
+#
+WWWGID=33
+
+# Debian usually puts every nginx site definitions using different files in
+# that specific directory. If you are using a custom nginx configuration,
+# different from the Debian default, replace NGINXDIR with a suitable value
+# for your sites-available directory.
+#
+NGINXDIR="/etc/nginx/sites-available"
+
+# Debian usually puts every apache2 site definitions using different files in
+# that specific directory. If you are using a custom apache2 configuration,
+# different from the Debian default, replace APACHEDIR with a suitable value
+# for your sites-available directory.
+#
+APACHEDIR="/etc/apache2/sites-available"
+
+# Debian usually puts every awstats domain configuration using different files
+# in that specific directory. If you are using a custom awstats configuration,
+# different from the Debian default, replace AWSTATDIR with a suitable value
+# for your awstats configuration directory.
+#
+AWSTATDIR="/etc/awstats"
+
+# An awstats configuration template is not distribuited with wcfg: this
+# script will read the original awstats configuration and generate a new one
+# using the website parameters, that will be stored in the directory specified
+# by AWSTATDIR, too. If you want to use a different template, just replace the
+# AWSTATDOM value.
+#
+AWSTATDOM="/etc/awstats/awstats.conf"
+
+# STATCACHE should be the same for every of your websites, and the Debian
+# default location /var/cache/awstats is used by default. However, due to the
+# use of symlinks, static reports will actually be stored within the virtual
+# server location, in "awstats/reports". If you need to use a different
+# directory for awstats static reports, you can update this value.
+#
+STATCACHE="/var/cache/awstats"
+

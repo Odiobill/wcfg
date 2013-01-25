@@ -1,0 +1,5 @@
+#!/bin/sh
+
+test -x /usr/bin/wcfg-backup || exit 0
+/usr/bin/wcfg-backup
+
