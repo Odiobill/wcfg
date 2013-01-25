@@ -54,8 +54,7 @@ directory, like:</p>
 <pre><code>htdocs/uploads/tmp</code></pre>
 <p>If you use views for any of your database, please provide the <em>show view</em> grant to the
 <em>debian-sys-maint</em> user with the following SQL commands after loggin into MySQL as admin user:</p>
-<pre><code>
-	use mysql;
+<pre><code>	use mysql;
 	update user set Show_view_priv = "Y" where User = 'debian-sys-maint';
 	flush privileges;
 </code></pre>
