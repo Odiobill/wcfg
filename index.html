@@ -50,15 +50,7 @@ an updated database dump (if a database is used by that specific website, of cou
 <p>If a forth directory called <em>backup</em> exists under the website main tree, the
 <strong>wcfg-backup</strong> script (it usually runs from a daily cron job) will take snapshots as explained
 above. You can choose to exclude files or directories from your daily snapshots listing them in a file named
-<em>exclude</em> under the backup directory. You must specify relative paths starting from the website root
-directory, like:</p>
-<pre><code>htdocs/uploads/tmp</code></pre>
-<p>If you use views for any of your database, please provide the <em>show view</em> grant to the
-<em>debian-sys-maint</em> user with the following SQL commands after loggin into MySQL as admin user:</p>
-<pre><code>	use mysql;
-	update user set Show_view_priv = "Y" where User = 'debian-sys-maint';
-	flush privileges;
-</code></pre>
+<em>exclude</em> under the backup directory.</p>
       </section>
       <footer>
         <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
