@@ -17,5 +17,5 @@
 		Allow from all
 	</Directory>
 	Alias /awstats-icon/ /usr/share/awstats/icon/
-	Alias /stats/ stats;
+###	Alias /stats/ stats;
 </VirtualHost>

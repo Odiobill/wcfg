@@ -6,13 +6,13 @@ server {
 
   index		index.php index.html;
 
-  location  /stats/ {
-    alias  stats;
-  }
+  include /etc/wcfg/nginx/php.conf;
+
   location  /awstats-icon/ {
     alias  /usr/share/awstats/icon/;
   }
-
-  include /etc/wcfg/nginx/php.conf;
+###  location  /stats/ {
+###    alias  stats;
+###  }
 }
 
