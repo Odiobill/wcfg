@@ -1,7 +1,7 @@
 wcfg
 ====
 
-Easy and lightweight solution to manage LAMP-like virtual web servers, for Debian and derivates
+Lightweight solution to manage LAMP-like virtual web servers
 
 
 wcfg is a flexible and easy to customise script, to be executed with super-user privileges, that can configure (or remove) complete LAMP-like virtual web servers on Debian, Ubuntu and derivate distributions.
