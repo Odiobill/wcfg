@@ -3,7 +3,7 @@ Priority: extra
 Section: net
 Maintainer: Davide Lucchesi <davide@lucchesi.nl>
 Architecture: all
-Version: 1.0-8
+Version: 1.0-9
 Depends: nginx-light|nginx|apache2, php5-fpm|libapache2-mod-php5, logrotate, mysql-client, rsync, sed
 Suggests: awstats, mysql-server, openssh-server, vsftpd
 Provides: wcfg
@@ -14,5 +14,5 @@ Description: Simple management of LAMP-like virtual servers for Debian and deriv
  mod_php and can manage many different things like name based virtual servers,
  mysql databases and privileges, (ftp) users, awstats and related static
  reports. logrotate will also be configured to take care of your virtual
- servers log files, but everything is keep consistent with the regulations and
- automatisms provided by the standard Debian packages.
+ servers log files, but everything will be kept consistent with the
+ regulations and automatisms provided by the standard Debian packages.
