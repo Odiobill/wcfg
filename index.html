@@ -16,13 +16,12 @@
   <body>
     <div class="wrapper">
       <header>
-        <h1 class="header">Wcfg</h1>
-        <p class="header">Simple management of LAMP-like virtual servers for Debian and derivates</p>
-
+        <h1 class="header">wcfg</h1>
+        <p class="header">Easy and lightweight solution to manage LAMP-like virtual web servers, for Debian and derivates.</p>
         <ul>
           <li class="download"><a class="buttons" href="https://github.com/Odiobill/wcfg/zipball/master">Download ZIP</a></li>
           <li class="download"><a class="buttons" href="https://github.com/Odiobill/wcfg/tarball/master">Download TAR</a></li>
-          <li class="download"><a class="buttons" href="http://odiobill.github.com/wcfg/wcfg_1.0-8_all.deb">Download DEB</a></li>
+          <li class="download"><a class="buttons" href="http://odiobill.github.com/wcfg/wcfg_1.0-9_all.deb">Download DEB</a></li>
           <li class="download"><a class="buttons" href="http://apt.lucchesi.nl/">APT repository</a></li>
           <li><a class="buttons github" href="https://github.com/Odiobill/wcfg">View On GitHub</a></li>
         </ul>
@@ -33,9 +32,12 @@
       </header>
       <section>
 	<h3>Welcome to the Wcfg project page.</h3>
-	<h4>Easy and lightweight solution to manage web servers</h4>
-<p><em>wcfg</em> is a script, to be executed with super-user privileges, that can configure (or remove) complete LAMP-like virtual servers.</p>
-<p>It supports both <strong>nginx with php-fpm</strong> and <strong>apache2 with mod_php</strong> and can manage many different things like name based virtual servers, <strong>mysql</strong> databases and privileges, (ftp) <strong>users</strong>, <strong>awstats</strong> and related static reports. <strong>logrotate</strong> will also be configured to take care of your virtual servers log files, but everything is keep consistent with the regulations and automatisms provided by the standard Debian packages.</p>
+	<h4>Easy and lightweight solution to manage LAMP-like virtual web servers, for Debian and derivates.</h4>
+<p><em>wcfg</em> is a flexible and easy to customise script, to be executed with super-user privileges, that can configure (or remove) complete LAMP-like virtual web servers.</p>
+<p>It supports both <strong>nginx with php-fpm</strong> and <strong>apache2 with mod_php</strong> and can manage many different things like name based virtual servers, <strong>mysql</strong> databases and privileges, (ftp/sftp) <strong>users</strong>, <strong>awstats</strong> and related static reports. <strong>logrotate</strong> will also be configured to take care of your virtual servers log files, but everything is keep consistent with the regulations and automatisms provided by the standard Debian packages.</p>
+<p>An FTP server is not required, however a new user will be created for every virtual server, with the website root path as home directory. This way it is very easy to configure per-site access installing <strong>vsftpd</strong> or any other FTP server. Moreover, since each website belongs to a different user, you just need to install <strong>openssh</strong> to allow SFTP access.</p>
+<p>Moreover, if you need the simplest possible solution, you will be happy to
+know that mysql and awstats are not strictly required.</p>
 
 	<h3>Project documentation</h3>
 <p>Please visit the <a href="https://github.com/Odiobill/wcfg/wiki">wcfg wiki</a> for the updated project documentation.</p>
