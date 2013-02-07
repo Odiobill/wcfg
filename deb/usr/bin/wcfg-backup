@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# wcfg-backup 1.0 - 2013/01/25
+# wcfg-backup 1.1 - 2013/02/06
 # Author: Davide Lucchesi <davide@lucchesi.nl>
 #
 # Real links based snapshots and MySQL dumps for websites configured with wcfg.
@@ -15,7 +15,7 @@
 # FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 
-LOCK="/var/run/wcfg.lock"
+LOCK="/var/run/wcfg-backup.lock"
 
 if [ `id -u` != "0" ] ; then
 	echo "You need super user privileges to run this script. Exiting."
@@ -56,8 +56,10 @@ ls /etc/wcfg/sites | while read i; do
 	if [ -d "$DSTPATH" ] ; then
 		SRCPATH="$WSROOTDIR/$WSDEFAULT/htdocs"
 		mkdir -p $DSTPATH/current
+		chown $WWWUID:$WWWGID $DSTPATH/current
 		for day in $(seq 1 $SNAPSHOTS); do
 			mkdir -p $DSTPATH/day-$day
+			chown $WWWUID:$WWWGID $DSTPATH/day-$day
 		done 
 		mkdir -p $DSTPATH/emptydir
 		rsync --delete -a $DSTPATH/emptydir/ $DSTPATH/day-$SNAPSHOTS
@@ -70,6 +72,7 @@ ls /etc/wcfg/sites | while read i; do
 		done
 		mv $DSTPATH/current $DSTPATH/day-1
 		mkdir -p $DSTPATH/current
+		chown $WWWUID:$WWWGID $DSTPATH/current
 		if [ -f "$DSTPATH/exclude" ]; then
 			EXCLUDE="--exclude-from=$DSTPATH/exclude"
 		else

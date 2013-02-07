@@ -1,0 +1,5 @@
+#!/bin/sh
+
+test -x /usr/bin/wcfg-stats || exit 0
+su www-data -c /usr/bin/wcfg-stats
+

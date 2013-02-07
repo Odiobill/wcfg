@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# wcfg-stats 1.0 - 2013/02/06
+# Author: Davide Lucchesi <davide@lucchesi.nl>
+#
+# Generates navigation html files to comfortably browse the awstats static
+# reports that are created by the default installation of the awstats package.
+# This script is intended to be run as super user.
+#
+# wcfg is free software; you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2, or (at your option) any later version.
+#
+# wcfg is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+
+LOCK="/tmp/wcfg-stats.lock"
+TLEN=1024
+
+if [ -f "$LOCK" ]; then
+	echo "Lock file "$LOCK" already exists. Exiting."
+	exit 1
+else
+	touch "$LOCK"
+fi
+
+if [ -f /etc/default/wcfg ]; then
+	. /etc/default/wcfg
+fi
+
+# generating per-site stats navigation files
+tpl=`grep ^WCFG /etc/wcfg/awstats/nav.html | sed "s/WCFG//"`
+for i in /etc/wcfg/sites/* ; do
+	WSDEFAULT=`basename $i`;
+	. "$i"
+	if [ -d "$STATCACHE/$WSDEFAULT/." -a -z "$NOSTATS" ] ; then
+		cd "$STATCACHE/$WSDEFAULT/"
+		last=`find . | grep "$WSDEFAULT.en.html" | sort -r | head -1`
+		yy=`echo "$last" | awk -F/ '{ print $2 }'`
+		mm=`echo "$last" | awk -F/ '{ print $3 }'`
+		fn=`echo "$last" | awk -F/ '{ print $4 }'`
+		cat /etc/wcfg/awstats/index.html \
+			| sed "s/wcfg_dn/$WSDEFAULT/g" \
+			| sed "s/wcfg_yy/$yy/g" \
+			| sed "s/wcfg_mm/$mm/g" \
+			| sed "s/wcfg_fn/$fn/g" > index.html
+		find . | grep "$WSDEFAULT.en.html" | sort -r | while read x; do
+			yy=`echo "$x" | awk -F/ '{ print $2 }'`
+			mm=`echo "$x" | awk -F/ '{ print $3 }'`
+			fn=`echo "$x" | awk -F/ '{ print $4 }'` 
+			echo "$tpl" \
+				| sed "s/wcfg_dn/$WSDEFAULT/g" \
+				| sed "s/wcfg_yy/$yy/g" \
+				| sed "s/wcfg_mm/$mm/g" \
+				| sed "s/wcfg_fn/$fn/g" >> nav.tmp
+		done
+		cat /etc/wcfg/awstats/nav.html \
+			| grep -B $TLEN WCFG \
+			| grep -v ^WCFG > nav.html
+		cat nav.tmp >> nav.html
+		rm nav.tmp
+		cat /etc/wcfg/awstats/nav.html \
+			| grep -A $TLEN WCFG \
+			| grep -v ^WCFG >> nav.html
+	fi
+done
+
+# done, cleaning up
+rm "$LOCK"
+exit 0
+
