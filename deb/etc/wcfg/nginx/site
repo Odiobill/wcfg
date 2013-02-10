@@ -1,18 +1,19 @@
 server {
-  server_name	server_name;
-  root		htdocs;
-  access_log	access.log;
-  error_log	error.log;
+	server_name	server_name;
+	root		htdocs;
+	access_log	access.log;
+	error_log	error.log;
 
-  index		index.php index.html;
+	index		index.html index.php;
+	include		/etc/wcfg/nginx/php.conf;
 
-  include /etc/wcfg/nginx/php.conf;
-
-  location  /awstats-icon/ {
-    alias  /usr/share/awstats/icon/;
-  }
-###  location  /stats/ {
-###    alias  stats;
-###  }
+###	location /awstats-icon/ {
+###		alias	/usr/share/awstats/icon/;
+###	}
+###	location /stats/ {
+###		alias	stats;
+###		auth_basic		"Stats";
+###		auth_basic_user_file	htpasswd;
+###	}
 }
 

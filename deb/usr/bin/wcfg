@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# wcfg 1.0 - 2013/01/25
+# wcfg 1.1 - 2013/02/09
 # Author: Davide Lucchesi <davide@lucchesi.nl>
 #
 # Simple management of LAMP-like virtual servers for Debian and derivates.
@@ -32,82 +32,107 @@ usage() {
 }
 
 delete=0
-if [ $# -eq 2 ] ; then
-	if [ "$2" = "--delete" ] ; then
+if [ $# -eq 2 ]; then
+	if [ "$2" = "--delete" ]; then
 		delete=1
 	else
 		usage
 	fi
 fi
 
-if [ $# -eq 1 -o $delete -eq 1 ] ; then
+if [ $# -eq 1 -o $delete -eq 1 ]; then
 	MYSQLCSTR=""
-	if [ -f /etc/default/wcfg ] ; then
+	if [ -f /etc/default/wcfg ]; then
 		. /etc/default/wcfg
 	else
 		echo "WARNING: /etc/default/wcfg not found."
 		echo "Assuming that the default parameters are specified in the configuration file."
 	fi
-	if [ -z "$NODB" ] ; then
-		if [ -z "$MYSQLCSTR" ] ; then
-			if [ -f /etc/mysql/debian.cnf ] ; then
+	if [ ! -x /usr/bin/mysql ]; then
+		NODB="1"
+		echo "Warning: mysql-client not installed."
+		echo "Can't connect to MySQL. Skipping data-base configuration."
+		echo " ";
+	fi
+	if [ -z "$NODB" ]; then
+		if [ -z "$MYSQLCSTR" ]; then
+			if [ -f /etc/mysql/debian.cnf ]; then
 				ADMIN_USER=`grep ^user /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
 				ADMIN_PASS=`grep ^pass /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
 				MYSQLCSTR="-u $ADMIN_USER -p$ADMIN_PASS"
 			else
 				NODB="1"
-				echo "Warning: can't connect to MySQL."
+				echo "Warning: No MySQL servers found."
 				echo "MYSQLCSTR: MySQL connection string unknown. Skipping data-base configuration."
 				echo " ";
 			fi
 		fi
 	fi
 
-	if [ -f $1 ] ; then
+	if [ ! -x /usr/lib/cgi-bin/awstats.pl ]; then
+		NOSTATS="1"
+		echo "Warning: /usr/lib/cgi-bin/awstats.pl not found."
+		echo "awstats not installed. Skipping statistics configuration."
+		echo " ";
+	fi
+	if [ -z "$NOSTATS" ]; then
+		if [ ! -f "$AWSTATDOM" ]; then
+			NOSTATS="1"
+			echo "Warning: $AWSTATDOM not found."
+			echo "AWSTATDOM: awstats configuration not found. Skipping statistics configuration."
+			echo " ";
+		fi
+	fi
+
+	if [ -f $1 ]; then
 		echo "Loading configuration file $1"
 		. $1
 		WSDEFAULT=`basename $1`;
-		if [ -z "$SYSUSER" ] ; then
+		if [ -z "$SYSUSER" ]; then
 			SYSUSER=`echo $WSDEFAULT | sed "s/\..*//"`
 			echo "Guessing username: $SYSUSER"
 		fi
-		if [ -z "$SYSPASS" ] ; then
+		if [ -z "$SYSPASS" ]; then
 			SYSPASS=$SYSUSER
 			echo "Guessing password: $SYSPASS"
 		fi
-		if [ -z "$NODB" ] ; then
-			if [ -z "$DBNAME" ] ; then
+		if [ -z "$NODB" ]; then
+			if [ -z "$DBNAME" ]; then
 				DBNAME=$SYSUSER
 				echo "Guessing database name: $DBNAME"
 			fi
-			if [ -z "$DBUSER" ] ; then
+			if [ -z "$DBUSER" ]; then
 				DBUSER=$SYSUSER
 				echo "Guessing database username: $DBNAME"
 			fi
-			if [ -z "$DBPASS" ] ; then
+			if [ -z "$DBPASS" ]; then
 				DBPASS="$SYSPASS"
 				echo "Guessing database password: $DBPASS"
 			fi
 		fi
-		if [ $delete -eq 1 ] ; then
-			if [ -f /etc/nginx/nginx.conf ] ; then
+		if [ $delete -eq 1 ]; then
+			if [ -x /usr/sbin/nginx ]; then
 				rm -f "$NGINXDIR/../sites-enabled/$WSDEFAULT"
 				rm -f "$NGINXDIR/$WSDEFAULT"
 				/etc/init.d/nginx reload
 			fi
-			if [ -f /etc/apache2/apache2.conf ] ; then
+			if [ -x /usr/sbin/apache2 ]; then
 				rm -f "$APACHEDIR/../sites-enabled/$WSDEFAULT"
 				rm -f "$APACHEDIR/$WSDEFAULT"
 				/etc/init.d/apache2 reload
 			fi
-			if [ -z "$NODB" ] ; then
-				mysqldump --opt $MYSQLCSTR $DBNAME \
-					> "$WSROOTDIR/$WSDEFAULT/$DBNAME.sql"
-				echo "
-					DROP USER $DBUSER@'localhost';
-					DROP USER $DBUSER@'%';
-					DROP DATABASE $DBNAME;
-				" | mysql $MYSQLCSTR
+			if [ -z "$NODB" ]; then
+				if [ -x /usr/bin/mysqldump ]; then
+					/usr/bin/mysqldump --opt $MYSQLCSTR \
+					$DBNAME > "$WSROOTDIR/$WSDEFAULT/$DBNAME.sql"
+				fi
+				if [ -x /usr/bin/mysql ]; then
+					echo "
+						DROP USER $DBUSER@'localhost';
+						DROP USER $DBUSER@'%';
+						DROP DATABASE $DBNAME;
+					" | /usr/bin/mysql $MYSQLCSTR
+				fi
 			fi
 			rm -rf "$WSROOTDIR/$WSDEFAULT/backup"
 			tar zcf "$SYSUSER.tar.gz" \
@@ -129,55 +154,55 @@ fi
 
 # initial checkup: we can proceed only without any error.
 errors=0
-if [ `id -u` != "0" ] ; then
+if [ `id -u` != "0" ]; then
 	echo "Error: You need super user privileges to run this script."
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ ! -d "$WSROOTDIR" ] ; then
+if [ ! -d "$WSROOTDIR" ]; then
 	echo "Error: $WSROOTDIR not found."
 	echo "WSROOTDIR: cannot create directories for the new website."
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ ! -d "$WSSKELDIR" ] ; then
+if [ ! -d "$WSSKELDIR" ]; then
 	echo "Error: $WSSKELDIR not found."
 	echo "WSSKELDIR: default website root directory template not found."
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -f /etc/nginx/nginx.conf -a ! -f "$NGINXDOM" ] ; then
+if [ -x /usr/sbin/nginx -a ! -f "$NGINXDOM" ]; then
 	echo "Error: nginx detected but $NGINXDOM not found."
 	echo "NGINXDOM: nginx virtual site template not found."
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -f /etc/apache2/apache2.conf -a ! -f "$APACHEDOM" ] ; then
+if [ -x /usr/sbin/apache2 -a ! -f "$APACHEDOM" ]; then
 	echo "Error: apache2 detected but $APACHEDOM not found."
 	echo "APACHEDOM: apache2 virtual site template not found."
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -f /etc/nginx/nginx.conf -a -f "$NGINXDIR/$WSDEFAULT" ] ; then
+if [ -x /usr/sbin/nginx -a -f "$NGINXDIR/$WSDEFAULT" ]; then
 	echo "Error: $WSDEFAULT may be already configured."
 	echo "WSDEFAULT: nginx site configuration: $NGINXDIR/$WSDEFAULT"
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -f /etc/apache2/apache2.conf -a -f "$APACHEDIR/$WSDEFAULT" ] ; then
+if [ -x /usr/sbin/apache2 -a -f "$APACHEDIR/$WSDEFAULT" ]; then
 	echo "Error: $WSDEFAULT may be already configured."
 	echo "WSDEFAULT: apache2 site configuration: $APACHEDIR/$WSDEFAULT"
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -f "$AWSTATDIR/awstats.$WSDEFAULT.conf" ] ; then
+if [ -f "$AWSTATDIR/awstats.$WSDEFAULT.conf" ]; then
 	echo "Error: $WSDEFAULT may be already configured."
 	echo "AWSTATDIR: awstats site configuration: $AWSTATDIR/awstats.$WSDEFAULT.conf"
 	echo " ";
@@ -185,23 +210,14 @@ if [ -f "$AWSTATDIR/awstats.$WSDEFAULT.conf" ] ; then
 fi
 
 grep "^$SYSUSER:" /etc/passwd >/dev/null 2>&1
-if [ $? -eq 0 ] ; then
+if [ $? -eq 0 ]; then
 	echo "Error: $WSDEFAULT may be already configured."
 	echo "SYSUSER: username already existing: $SYSUSER"
 	echo " ";
 	errors=$(($errors + 1))
 fi
 
-if [ -z "$NOSTATS" ] ; then
-	if [ ! -f "$AWSTATDOM" ] ; then
-		NOSTATS="1"
-		echo "Warning: $AWSTATDOM not found."
-		echo "AWSTATDOM: awstats configuration not found. Skipping statistics configuration."
-		echo " ";
-	fi
-fi
-
-if [ $errors -gt 0 ] ; then
+if [ $errors -gt 0 ]; then
 	echo "Found $errors error(s). Giving up."
 	exit 1
 else
@@ -211,15 +227,21 @@ else
 	echo "WSNAMES: $WSNAMES"
 	echo "SYSUSER: $SYSUSER"
 	echo "SYSPASS: $SYSPASS"
-	if [ -z "$NODB" ] ; then
+	if [ -z "$NODB" ]; then
 		echo "DBNAME: $DBNAME"
 		echo "DBUSER: $DBUSER"
 		echo "DBPASS: $DBPASS"
+	else
+		echo " "
+		echo "No MySQL configuration."
+	fi
+	if [ ! -z $NOSTATS ]; then
+		echo "No awstats configuration."
 	fi
 	echo " "
 	echo -n "Confirm? (y/N) "
 	read conf
-	if [ "$conf" != "y" ] ; then
+	if [ "$conf" != "y" ]; then
 		echo "Giving up as requested."
 		exit 1
 	fi
@@ -233,19 +255,26 @@ useradd -c "$WSDEFAULT" -d "$WSROOTDIR/$WSDEFAULT" \
 
 # nginx
 #
-if [ -f /etc/nginx/nginx.conf ] ; then
+if [ -x /usr/sbin/nginx ]; then
 	cp "$NGINXDOM" "$NGINXDIR/$WSDEFAULT"
 	sed -i "s:server_name;:$WSNAMES;:g" "$NGINXDIR/$WSDEFAULT"
 	sed -i "s:htdocs;:$WSROOTDIR/$WSDEFAULT/htdocs;:g" "$NGINXDIR/$WSDEFAULT"
 	sed -i "s:access.log;:$WSROOTDIR/$WSDEFAULT/logs/access.log;:g" "$NGINXDIR/$WSDEFAULT"
 	sed -i "s:error.log;:$WSROOTDIR/$WSDEFAULT/logs/error.log;:g" "$NGINXDIR/$WSDEFAULT"
 	sed -i "s:stats;:$WSROOTDIR/$WSDEFAULT/awstats/reports/;:g" "$NGINXDIR/$WSDEFAULT"
+	sed -i "s:htpasswd;:$WSROOTDIR/$WSDEFAULT/.htpasswd/;:g" "$NGINXDIR/$WSDEFAULT"
+	if [ ! -x /usr/sbin/php5-fpm ]; then
+		mv "$NGINXDIR/$WSDEFAULT" "$NGINXDIR/$WSDEFAULT.tmp"
+		grep -v "/etc/wcfg/nginx/php.conf" \
+			"$NGINXDIR/$WSDEFAULT.tmp" >> "$NGINXDIR/$WSDEFAULT"
+			rm "$NGINXDIR/$WSDEFAULT.tmp"
+	fi
 	ln -s "$NGINXDIR/$WSDEFAULT" "$NGINXDIR/../sites-enabled/"
 fi
 
 # apache2
 #
-if [ -f /etc/apache2/apache2.conf ] ; then
+if [ -x /usr/sbin/apache2 ]; then
 	cp "$APACHEDOM" "$APACHEDIR/$WSDEFAULT"
 	server_name=`echo "$WSNAMES" | awk ' { print $1 } '`
 	sed -i "s:server_name;:$server_name:g" "$APACHEDIR/$WSDEFAULT"
@@ -254,12 +283,24 @@ if [ -f /etc/apache2/apache2.conf ] ; then
 	sed -i "s:access.log;:$WSROOTDIR/$WSDEFAULT/logs/access.log:g" "$APACHEDIR/$WSDEFAULT"
 	sed -i "s:error.log;:$WSROOTDIR/$WSDEFAULT/logs/error.log:g" "$APACHEDIR/$WSDEFAULT"
 	sed -i "s:stats;:$WSROOTDIR/$WSDEFAULT/awstats/reports/:g" "$APACHEDIR/$WSDEFAULT"
+	sed -i "s:htpasswd;:$WSROOTDIR/$WSDEFAULT/.htpasswd:g" "$APACHEDIR/$WSDEFAULT"
 	ln -s "$APACHEDIR/$WSDEFAULT" "$APACHEDIR/../sites-enabled/"
+fi
+
+# mysql
+#
+if [ -z "$NODB" -a -x /usr/bin/mysql ]; then
+	echo "
+		CREATE DATABASE $DBNAME;
+		GRANT ALL ON $DBNAME.* TO $DBUSER@'localhost' IDENTIFIED BY '$DBPASS';
+		GRANT ALL ON $DBNAME.* TO $DBUSER@'%' IDENTIFIED BY '$DBPASS';
+		FLUSH PRIVILEGES;
+	" | /usr/bin/mysql $MYSQLCSTR
 fi
 
 # awstats
 #
-if [ -z "$NOSTATS" ] ; then
+if [ -z "$NOSTATS" -a -x /usr/lib/cgi-bin/awstats.pl ]; then
  cat "$AWSTATDOM" \
  | sed "s:^LogFile.*$:LogFile=\"$WSROOTDIR/$WSDEFAULT/logs/access.log\":" \
  | sed "s:^SiteDomain.*:SiteDomain=\"$WSDEFAULT\":" \
@@ -269,16 +310,10 @@ if [ -z "$NOSTATS" ] ; then
 	ln -s "$WSROOTDIR/$WSDEFAULT/awstats/reports" "$STATCACHE/$WSDEFAULT"
 fi
 
-# mysql
+# htpasswd file for http basic authentication support
 #
-if [ -z "$NODB" ] ; then
-	echo "
-		CREATE DATABASE $DBNAME;
-		GRANT ALL ON $DBNAME.* TO $DBUSER@'localhost' IDENTIFIED BY '$DBPASS';
-		GRANT ALL ON $DBNAME.* TO $DBUSER@'%' IDENTIFIED BY '$DBPASS';
-		FLUSH PRIVILEGES;
-	" | mysql $MYSQLCSTR
-fi
+ENCPASS=`perl -e 'print crypt($ARGV[1], $ARGV[0])' $SYSUSER $SYSPASS`
+echo "$SYSUSER:$ENCPASS" >> "$WSROOTDIR/$WSDEFAULT/.htpasswd"
 
 echo "$WSDEFAULT configured. Please reload your webserver to activate it."
 exit 0

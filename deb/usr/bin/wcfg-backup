@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# wcfg-backup 1.1 - 2013/02/06
+# wcfg-backup 1.1 - 2013/02/09
 # Author: Davide Lucchesi <davide@lucchesi.nl>
 #
 # Real links based snapshots and MySQL dumps for websites configured with wcfg.
@@ -17,7 +17,7 @@
 
 LOCK="/var/run/wcfg-backup.lock"
 
-if [ `id -u` != "0" ] ; then
+if [ `id -u` != "0" ]; then
 	echo "You need super user privileges to run this script. Exiting."
 	exit 1
 fi
@@ -39,8 +39,10 @@ if [ -z "$MYSQLCSTR" ]; then
 		ADMIN_USER=`grep ^user /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
 		ADMIN_PASS=`grep ^pass /etc/mysql/debian.cnf | head -1 | awk '{ print $3 }'`
 		MYSQLCSTR="-u $ADMIN_USER -p$ADMIN_PASS"
-		echo "SHOW DATABASES;" | mysql $MYSQLCSTR > "$LOCK"
 	fi
+fi
+if [ ! -z "$MYSQLCSTR" -a -x /usr/bin/mysql ]; then
+	echo "SHOW DATABASES;" | /usr/bin/mysql $MYSQLCSTR > "$LOCK"
 fi
 
 # taking snapshots and dumping DBs
@@ -49,23 +51,19 @@ ls /etc/wcfg/sites | while read i; do
 	. /etc/wcfg/sites/$i
 	WSDEFAULT=`basename $i`;
 	defvalue=`echo $WSDEFAULT | sed "s/\..*//"`
-	if [ -z "$DBNAME" ] ; then
+	if [ -z "$DBNAME" ]; then
 		DBNAME=$defvalue
 	fi
 	DSTPATH="$WSROOTDIR/$WSDEFAULT/backup"
-	if [ -d "$DSTPATH" ] ; then
+	if [ -d "$DSTPATH" ]; then
+		# rotating snapshots
 		SRCPATH="$WSROOTDIR/$WSDEFAULT/htdocs"
 		mkdir -p $DSTPATH/current
 		chown $WWWUID:$WWWGID $DSTPATH/current
-		for day in $(seq 1 $SNAPSHOTS); do
+		for day in $(seq 1 $(($SNAPSHOTS-1))); do
 			mkdir -p $DSTPATH/day-$day
 			chown $WWWUID:$WWWGID $DSTPATH/day-$day
 		done 
-		mkdir -p $DSTPATH/emptydir
-		rsync --delete -a $DSTPATH/emptydir/ $DSTPATH/day-$SNAPSHOTS
-		rm -rf $DSTPATH/day-$SNAPSHOTS
-		rmdir $DSTPATH/emptydir
-
 		for day in $(seq $SNAPSHOTS -1 2); do
 			precday=$(($day - 1))
 			mv $DSTPATH/day-$precday $DSTPATH/day-$day
@@ -73,19 +71,24 @@ ls /etc/wcfg/sites | while read i; do
 		mv $DSTPATH/current $DSTPATH/day-1
 		mkdir -p $DSTPATH/current
 		chown $WWWUID:$WWWGID $DSTPATH/current
-		if [ -f "$DSTPATH/exclude" ]; then
-			EXCLUDE="--exclude-from=$DSTPATH/exclude"
-		else
-			EXCLUDE=""
+
+		if [ -x /usr/bin/rsync ]; then
+			# taking new website snapshot
+			if [ -f "$DSTPATH/exclude" ]; then
+				EXCLUDE="--exclude-from=$DSTPATH/exclude"
+			else
+				EXCLUDE=""
+			fi
+			/usr/bin/rsync -a $EXCLUDE --delete --link-dest=../day-1 $SRCPATH $DSTPATH/current/
 		fi
 
-		rsync -a $EXCLUDE --delete --link-dest=../day-1 $SRCPATH $DSTPATH/current/
-
-		# dumping database
-		dbname=`grep "$DBNAME" "$LOCK"`
-		if [ ! -z "$dbname" ] ; then
-			BACKUP="$WSROOTDIR/$WSDEFAULT/backup/current/$DBNAME.sql"
-			mysqldump --add-drop-database --opt --routines $MYSQLCSTR "$DBNAME" > "$BACKUP"
+		if [ ! -z "$MYSQLCSTR" -a -x /usr/bin/mysqldump ]; then
+			# dumping database
+			dbname=`grep "$DBNAME" "$LOCK"`
+			if [ ! -z "$dbname" ] ; then
+				BACKUP="$WSROOTDIR/$WSDEFAULT/backup/current/$DBNAME.sql"
+				/usr/bin/mysqldump --add-drop-database --opt --routines $MYSQLCSTR "$DBNAME" > "$BACKUP"
+			fi
 		fi
 	fi
 done

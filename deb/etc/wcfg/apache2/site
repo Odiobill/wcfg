@@ -10,12 +10,18 @@
 		Order allow,deny
 		allow from all
 	</Directory>
-	<Directory /usr/share/awstats/icon>
-		Options None
-		AllowOverride None
-		Order allow,deny
-		Allow from all
-	</Directory>
-	Alias /awstats-icon/ /usr/share/awstats/icon/
+###	<Directory /usr/share/awstats/icon>
+###		Options None
+###		AllowOverride None
+###		Order allow,deny
+###		Allow from all
+###	</Directory>
+###	Alias /awstats-icon/ /usr/share/awstats/icon/
+###	<Directory stats;>
+###		AuthType Basic
+###		AuthName 'Stats'
+###		AuthUserFile 'htpasswd;'
+###		Require valid-user
+###	</Directory>
 ###	Alias /stats/ stats;
 </VirtualHost>
