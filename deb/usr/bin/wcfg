@@ -106,7 +106,7 @@ if [ $# -eq 1 -o $delete -eq 1 ]; then
 			fi
 			if [ -z "$DBUSER" ]; then
 				DBUSER=$SYSUSER
-				echo "Guessing database username: $DBNAME"
+				echo "Guessing database username: $DBUSER"
 			fi
 			if [ -z "$DBPASS" ]; then
 				DBPASS="$SYSPASS"
