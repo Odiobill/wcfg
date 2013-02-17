@@ -91,7 +91,6 @@ if [ $# -eq 1 -o $delete -eq 1 ]; then
 		if [ -z "$SYSUSER" ]; then
 			SYSUSER=`echo $WSDEFAULT | sed "s/\..*//"`
 			if [ ${#SYSUSER} -gt $LENUSER ]; then
-echo Truncating
 				SYSUSER=${SYSUSER:0:$LENUSER}
 			fi
 			echo "Guessing username: $SYSUSER"
