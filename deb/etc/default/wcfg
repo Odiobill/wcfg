@@ -94,3 +94,9 @@ AWSTATDOM="/etc/awstats/awstats.conf"
 #
 STATCACHE="/var/cache/awstats"
 
+# LENUSER defines the maximum string lenght that a (guessed) user name can have.
+# It is by default set to 16 because that is the maximum string lenght that
+# MySQL can handle without any complain for its users.
+#
+LENUSER=16
+

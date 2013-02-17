@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# wcfg 1.1 - 2013/02/09
+# wcfg 1.1 - 2013/02/17
 # Author: Davide Lucchesi <davide@lucchesi.nl>
 #
 # Simple management of LAMP-like virtual servers for Debian and derivates.
@@ -90,6 +90,10 @@ if [ $# -eq 1 -o $delete -eq 1 ]; then
 		WSDEFAULT=`basename $1`;
 		if [ -z "$SYSUSER" ]; then
 			SYSUSER=`echo $WSDEFAULT | sed "s/\..*//"`
+			if [ ${#SYSUSER} -gt $LENUSER ]; then
+echo Truncating
+				SYSUSER=${SYSUSER:0:$LENUSER}
+			fi
 			echo "Guessing username: $SYSUSER"
 		fi
 		if [ -z "$SYSPASS" ]; then
