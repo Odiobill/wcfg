@@ -238,7 +238,7 @@ else
 		echo " "
 		echo "No MySQL configuration."
 	fi
-	if [ ! -z $NOSTATS ]; then
+	if [ ! -z "$NOSTATS" ]; then
 		echo "No awstats configuration."
 	fi
 	echo " "
