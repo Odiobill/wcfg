@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# wcfg-backup 1.1 - 2013/02/09
+# wcfg-backup 1.1 - 2013/02/26
 # Author: Davide Lucchesi <davide@lucchesi.nl>
 #
 # Real links based snapshots and MySQL dumps for websites configured with wcfg.
@@ -63,7 +63,8 @@ ls /etc/wcfg/sites | while read i; do
 		for day in $(seq 1 $(($SNAPSHOTS-1))); do
 			mkdir -p $DSTPATH/day-$day
 			chown $WWWUID:$WWWGID $DSTPATH/day-$day
-		done 
+		done
+		rm -rf $DSTPATH/day-$SNAPSHOTS
 		for day in $(seq $SNAPSHOTS -1 2); do
 			precday=$(($day - 1))
 			mv $DSTPATH/day-$precday $DSTPATH/day-$day
